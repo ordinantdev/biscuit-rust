@@ -11,7 +11,7 @@ homepage = "https://github.com/biscuit-auth/biscuit"
 repository = "https://github.com/biscuit-auth/biscuit-rust"
 
 [features]
-default = ["regex-full", "datalog-macro", "pem"]
+default = ["regex-full", "datalog-macro", "pem", "p256"]
 regex-full = ["regex/perf", "regex/unicode"]
 wasm = ["wasm-bindgen"]
 # used by biscuit-wasm to serialize errors to JSON
@@ -23,7 +23,9 @@ bwk = ["chrono", "serde"]
 docsrs = []
 uuid = ["dep:uuid"]
 # used to expose pem/der loaders for keypairs
-pem = ["ed25519-dalek/pem", "ed25519-dalek/pkcs8"]
+pem = ["ed25519-dalek/pem", "ed25519-dalek/pkcs8", "dep:pkcs8", "p256?/pem", "ecdsa?/pem", "ecdsa?/pkcs8"]
+# ECDSA P256 signature support
+p256 = ["dep:p256", "dep:ecdsa", "biscuit-parser/p256"]
 
 [dependencies]
 rand_core = "^0.6"
@@ -40,14 +42,15 @@ ed25519-dalek = { version = "2.0.0", features = ["rand_core", "zeroize"] }
 serde = { version = "1.0.132", optional = true, features = ["derive"] }
 time = { version = "0.3.7", features = ["formatting", "parsing"] }
 uuid = { version = "1", optional = true }
-biscuit-parser = { version = "0.2.0", path = "../biscuit-parser" }
+biscuit-parser = { version = "0.2.0", path = "../biscuit-parser", default-features = false }
 biscuit-quote = { version = "0.3.0", optional = true, path = "../biscuit-quote" }
 chrono = { version = "0.4.26", optional = true, default-features = false, features = [
   "serde",
 ] }
 serde_json = "1.0.117"
-ecdsa = { version = "0.16.9", features = ["signing", "verifying", "pem", "alloc", "pkcs8"] }
-p256 = "0.13.2"
+ecdsa = { version = "0.16.9", features = ["signing", "verifying", "alloc"], optional = true }
+p256 = { version = "0.13.2", default-features = false, features = ["ecdsa"], optional = true }
+pkcs8 = { version = "0.10", optional = true }
 
 [dev-dependencies]
 bencher = "0.1.5"

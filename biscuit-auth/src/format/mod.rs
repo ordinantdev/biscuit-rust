@@ -31,6 +31,7 @@ use self::convert::*;
 
 pub(crate) const THIRD_PARTY_SIGNATURE_VERSION: u32 = 1;
 pub(crate) const DATALOG_3_3_SIGNATURE_VERSION: u32 = 1;
+#[cfg(feature = "p256")]
 pub(crate) const NON_ED25519_SIGNATURE_VERSION: u32 = 1;
 /// Intermediate structure for token serialization
 ///
@@ -148,8 +149,15 @@ impl SerializedBiscuit {
             Some(schema::proof::Content::NextSecret(v)) => {
                 let next_key_algorithm = match next_key_algorithm {
                     schema::public_key::Algorithm::Ed25519 => crate::builder::Algorithm::Ed25519,
+                    #[cfg(feature = "p256")]
                     schema::public_key::Algorithm::Secp256r1 => {
                         crate::builder::Algorithm::Secp256r1
+                    }
+                    #[cfg(not(feature = "p256"))]
+                    _ => {
+                        return Err(error::Format::DeserializationError(
+                            "P256 support not enabled".to_string(),
+                        ))
                     }
                 };
                 TokenNext::Secret(PrivateKey::from_bytes(&v, next_key_algorithm)?)
@@ -572,6 +580,7 @@ where
 
     match (block_keypair, next_keypair) {
         (KeyPair::Ed25519(_), KeyPair::Ed25519(_)) => {}
+        #[cfg(feature = "p256")]
         _ => {
             return NON_ED25519_SIGNATURE_VERSION;
         }
@@ -626,39 +635,42 @@ mod tests {
             0,
             "ed25519 everywhere, authority block, no new datalog features"
         );
-        assert_eq!(
-            block_signature_version(
-                &KeyPair::new_with_algorithm(Algorithm::Secp256r1),
-                &KeyPair::new_with_algorithm(Algorithm::Ed25519),
-                &None,
-                &Some(DATALOG_3_1),
-                std::iter::empty()
-            ),
-            1,
-            "s256r1 root key, authority block, no new datalog features"
-        );
-        assert_eq!(
-            block_signature_version(
-                &KeyPair::new_with_algorithm(Algorithm::Ed25519),
-                &KeyPair::new_with_algorithm(Algorithm::Secp256r1),
-                &None,
-                &Some(DATALOG_3_1),
-                std::iter::empty()
-            ),
-            1,
-            "s256r1 next key, authority block, no new datalog features"
-        );
-        assert_eq!(
-            block_signature_version(
-                &KeyPair::new_with_algorithm(Algorithm::Secp256r1),
-                &KeyPair::new_with_algorithm(Algorithm::Secp256r1),
-                &None,
-                &Some(DATALOG_3_1),
-                std::iter::empty()
-            ),
-            1,
-            "s256r1 root & next key, authority block, no new datalog features"
-        );
+        #[cfg(feature = "p256")]
+        {
+            assert_eq!(
+                block_signature_version(
+                    &KeyPair::new_with_algorithm(Algorithm::Secp256r1),
+                    &KeyPair::new_with_algorithm(Algorithm::Ed25519),
+                    &None,
+                    &Some(DATALOG_3_1),
+                    std::iter::empty()
+                ),
+                1,
+                "s256r1 root key, authority block, no new datalog features"
+            );
+            assert_eq!(
+                block_signature_version(
+                    &KeyPair::new_with_algorithm(Algorithm::Ed25519),
+                    &KeyPair::new_with_algorithm(Algorithm::Secp256r1),
+                    &None,
+                    &Some(DATALOG_3_1),
+                    std::iter::empty()
+                ),
+                1,
+                "s256r1 next key, authority block, no new datalog features"
+            );
+            assert_eq!(
+                block_signature_version(
+                    &KeyPair::new_with_algorithm(Algorithm::Secp256r1),
+                    &KeyPair::new_with_algorithm(Algorithm::Secp256r1),
+                    &None,
+                    &Some(DATALOG_3_1),
+                    std::iter::empty()
+                ),
+                1,
+                "s256r1 root & next key, authority block, no new datalog features"
+            );
+        }
         assert_eq!(
             block_signature_version(
                 &KeyPair::new(),

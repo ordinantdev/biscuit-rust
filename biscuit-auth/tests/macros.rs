@@ -293,6 +293,7 @@ fn json() {
     );
 }
 
+#[cfg(feature = "p256")]
 #[test]
 fn ecdsa() {
     use biscuit_auth::PublicKey;
@@ -319,7 +320,7 @@ fn ecdsa() {
 fn trusting() {
     // this should only work with a proper `PublicKey` value, and fail when trying to provide a string instead
     let pubkey: PublicKey =
-        "secp256r1/0245dd01132962da3812911b746b080aed714873c1812e7cefacf13e3880712da0"
+        "ed25519/6e9e6d5a75cf0c0e87ec1256b4dfed0ca3ba452912d213fcc70f8516583db9db"
             .parse()
             .unwrap();
     let _ = authorizer!(

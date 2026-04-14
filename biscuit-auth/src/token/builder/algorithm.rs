@@ -13,12 +13,17 @@ use crate::error;
 #[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
 pub enum Algorithm {
     Ed25519,
+    #[cfg(feature = "p256")]
     Secp256r1,
 }
 
 impl Algorithm {
     pub fn values() -> &'static [Self] {
-        &[Self::Ed25519, Self::Secp256r1]
+        &[
+            Self::Ed25519,
+            #[cfg(feature = "p256")]
+            Self::Secp256r1,
+        ]
     }
 }
 
@@ -32,6 +37,7 @@ impl Display for Algorithm {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Algorithm::Ed25519 => write!(f, "ed25519"),
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => write!(f, "secp256r1"),
         }
     }
@@ -49,6 +55,7 @@ impl TryFrom<&str> for Algorithm {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
             "ed25519" => Ok(Algorithm::Ed25519),
+            #[cfg(feature = "p256")]
             "secp256r1" => Ok(Algorithm::Secp256r1),
             _ => Err(error::Format::DeserializationError(format!(
                 "deserialization error: unexpected key algorithm {}",
@@ -62,6 +69,7 @@ impl From<biscuit_parser::builder::Algorithm> for Algorithm {
     fn from(value: biscuit_parser::builder::Algorithm) -> Algorithm {
         match value {
             biscuit_parser::builder::Algorithm::Ed25519 => Algorithm::Ed25519,
+            #[cfg(feature = "p256")]
             biscuit_parser::builder::Algorithm::Secp256r1 => Algorithm::Secp256r1,
         }
     }
@@ -71,16 +79,25 @@ impl From<Algorithm> for biscuit_parser::builder::Algorithm {
     fn from(value: Algorithm) -> biscuit_parser::builder::Algorithm {
         match value {
             Algorithm::Ed25519 => biscuit_parser::builder::Algorithm::Ed25519,
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => biscuit_parser::builder::Algorithm::Secp256r1,
         }
     }
 }
 
-impl From<crate::format::schema::public_key::Algorithm> for Algorithm {
-    fn from(value: crate::format::schema::public_key::Algorithm) -> Algorithm {
+impl TryFrom<crate::format::schema::public_key::Algorithm> for Algorithm {
+    type Error = error::Format;
+    fn try_from(
+        value: crate::format::schema::public_key::Algorithm,
+    ) -> Result<Algorithm, Self::Error> {
         match value {
-            crate::format::schema::public_key::Algorithm::Ed25519 => Algorithm::Ed25519,
-            crate::format::schema::public_key::Algorithm::Secp256r1 => Algorithm::Secp256r1,
+            crate::format::schema::public_key::Algorithm::Ed25519 => Ok(Algorithm::Ed25519),
+            #[cfg(feature = "p256")]
+            crate::format::schema::public_key::Algorithm::Secp256r1 => Ok(Algorithm::Secp256r1),
+            #[cfg(not(feature = "p256"))]
+            _ => Err(error::Format::DeserializationError(
+                "P256 support not enabled".to_string(),
+            )),
         }
     }
 }
@@ -89,6 +106,7 @@ impl From<Algorithm> for crate::format::schema::public_key::Algorithm {
     fn from(value: Algorithm) -> crate::format::schema::public_key::Algorithm {
         match value {
             Algorithm::Ed25519 => crate::format::schema::public_key::Algorithm::Ed25519,
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => crate::format::schema::public_key::Algorithm::Secp256r1,
         }
     }

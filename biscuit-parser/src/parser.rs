@@ -318,7 +318,8 @@ fn scope(i: &str) -> IResult<&str, builder::Scope, Error> {
 }
 
 pub fn public_key(i: &str) -> IResult<&str, builder::PublicKey, Error> {
-    alt((
+    #[cfg(feature = "p256")]
+    let mut parser = alt((
         preceded(tag("ed25519/"), parse_hex).map(|key| PublicKey {
             key,
             algorithm: builder::Algorithm::Ed25519,
@@ -327,7 +328,15 @@ pub fn public_key(i: &str) -> IResult<&str, builder::PublicKey, Error> {
             key,
             algorithm: builder::Algorithm::Secp256r1,
         }),
-    ))(i)
+    ));
+
+    #[cfg(not(feature = "p256"))]
+    let mut parser = preceded(tag("ed25519/"), parse_hex).map(|key| PublicKey {
+        key,
+        algorithm: builder::Algorithm::Ed25519,
+    });
+
+    nom::Parser::parse(&mut parser, i)
 }
 
 #[derive(Debug, PartialEq)]

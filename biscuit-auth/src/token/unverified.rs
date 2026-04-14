@@ -2,6 +2,8 @@
  * Copyright (c) 2019 Geoffroy Couprie <contact@geoffroycouprie.com> and Contributors to the Eclipse Foundation.
  * SPDX-License-Identifier: Apache-2.0
  */
+use std::convert::TryInto;
+
 use prost::Message;
 
 use super::{default_symbol_table, Biscuit, Block};
@@ -325,7 +327,7 @@ impl UnverifiedBiscuit {
                 )
             })?;
         let external_key =
-            PublicKey::from_bytes(&external_signature.public_key.key, algorithm.into()).map_err(
+            PublicKey::from_bytes(&external_signature.public_key.key, algorithm.try_into()?).map_err(
                 |e| {
                     error::Format::BlockSignatureDeserializationError(format!(
                         "block external public key deserialization error: {:?}",

@@ -17,6 +17,7 @@ biscuit-auth = { version = "6.0.0", path = "../biscuit-auth", features = [
     "datalog-macro",
     "serde-error",
     "pem",
+    "p256",
 ] }
 libc = "0.2"
 rand = "0.8"
