@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 //! main structures to interact with Biscuit tokens
+use base64::Engine;
 use std::fmt::Display;
 use std::iter::once;
 
@@ -142,7 +143,7 @@ impl Biscuit {
         self.container
             .to_vec()
             .map_err(error::Token::Format)
-            .map(|v| base64::encode_config(v, base64::URL_SAFE))
+            .map(|v| base64::engine::general_purpose::URL_SAFE.encode(v))
     }
 
     /// serializes the token
@@ -347,7 +348,7 @@ impl Biscuit {
         T: AsRef<[u8]>,
         KP: RootKeyProvider,
     {
-        let decoded = base64::decode_config(slice, base64::URL_SAFE)?;
+        let decoded = base64::engine::general_purpose::URL_SAFE.decode(slice)?;
         Biscuit::from_with_symbols(&decoded, key_provider, symbols)
     }
 

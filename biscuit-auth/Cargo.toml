@@ -29,15 +29,15 @@ p256 = ["dep:p256", "dep:ecdsa", "biscuit-parser/p256"]
 
 [dependencies]
 rand_core = "^0.6"
-prost = "0.10"
+prost = "0.13"
 regex = { version = "1.5", default-features = false, features = ["std"] }
 nom = { version = "7", default-features = false, features = ["std"] }
 hex = "0.4"
 zeroize = { version = "1.5", default-features = false }
-thiserror = "1"
+thiserror = "2"
 rand = { version = "0.8" }
 wasm-bindgen = { version = "0.2", optional = true }
-base64 = "0.13.0"
+base64 = "0.22"
 ed25519-dalek = { version = "2.0.0", features = ["rand_core", "zeroize"] }
 serde = { version = "1.0.132", optional = true, features = ["derive"] }
 time = { version = "0.3.7", features = ["formatting", "parsing"] }

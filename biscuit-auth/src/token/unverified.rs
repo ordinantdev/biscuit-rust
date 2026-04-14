@@ -2,7 +2,8 @@
  * Copyright (c) 2019 Geoffroy Couprie <contact@geoffroycouprie.com> and Contributors to the Eclipse Foundation.
  * SPDX-License-Identifier: Apache-2.0
  */
-use std::convert::TryInto;
+use base64::Engine;
+use std::convert::{TryFrom, TryInto};
 
 use prost::Message;
 
@@ -122,7 +123,7 @@ impl UnverifiedBiscuit {
         self.container
             .to_vec()
             .map_err(error::Token::Format)
-            .map(|v| base64::encode_config(v, base64::URL_SAFE))
+            .map(|v| base64::engine::general_purpose::URL_SAFE.encode(v))
     }
 
     /// deserializes from raw bytes with a custom symbol table
@@ -147,7 +148,7 @@ impl UnverifiedBiscuit {
     where
         T: AsRef<[u8]>,
     {
-        let decoded = base64::decode_config(slice, base64::URL_SAFE)?;
+        let decoded = base64::engine::general_purpose::URL_SAFE.decode(slice)?;
         Self::from_with_symbols(&decoded, symbols)
     }
 
@@ -321,7 +322,7 @@ impl UnverifiedBiscuit {
         })?;
 
         let algorithm =
-            Algorithm::from_i32(external_signature.public_key.algorithm).ok_or_else(|| {
+            Algorithm::try_from(external_signature.public_key.algorithm).ok().ok_or_else(|| {
                 error::Format::DeserializationError(
                     "deserialization error: invalid external key algorithm".to_string(),
                 )
@@ -376,7 +377,7 @@ impl UnverifiedBiscuit {
     where
         T: AsRef<[u8]>,
     {
-        let decoded = base64::decode_config(slice, base64::URL_SAFE)?;
+        let decoded = base64::engine::general_purpose::URL_SAFE.decode(slice)?;
         self.append_third_party(&decoded)
     }
 }

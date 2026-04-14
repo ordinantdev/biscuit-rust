@@ -2,6 +2,7 @@
  * Copyright (c) 2019 Geoffroy Couprie <contact@geoffroycouprie.com> and Contributors to the Eclipse Foundation.
  * SPDX-License-Identifier: Apache-2.0
  */
+use base64::Engine;
 use std::cmp::max;
 
 use prost::Message;
@@ -60,7 +61,7 @@ impl ThirdPartyRequest {
     }
 
     pub fn serialize_base64(&self) -> Result<String, error::Token> {
-        Ok(base64::encode_config(self.serialize()?, base64::URL_SAFE))
+        Ok(base64::engine::general_purpose::URL_SAFE.encode(self.serialize()?))
     }
 
     pub fn deserialize(slice: &[u8]) -> Result<Self, error::Token> {
@@ -89,7 +90,7 @@ impl ThirdPartyRequest {
     where
         T: AsRef<[u8]>,
     {
-        let decoded = base64::decode_config(slice, base64::URL_SAFE)?;
+        let decoded = base64::engine::general_purpose::URL_SAFE.decode(slice)?;
         Self::deserialize(&decoded)
     }
 
@@ -151,7 +152,7 @@ impl ThirdPartyBlock {
     }
 
     pub fn serialize_base64(&self) -> Result<String, error::Token> {
-        Ok(base64::encode_config(self.serialize()?, base64::URL_SAFE))
+        Ok(base64::engine::general_purpose::URL_SAFE.encode(self.serialize()?))
     }
 }
 
