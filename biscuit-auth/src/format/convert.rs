@@ -4,6 +4,8 @@
  */
 //! helper functions for conversion between internal structures and Protobuf
 
+use std::convert::TryFrom;
+
 use super::schema;
 use crate::builder::Convert;
 use crate::crypto::PublicKey;
@@ -380,7 +382,7 @@ pub fn proto_policy_to_policy(
         queries.push(c);
     }
 
-    let kind = if let Some(i) = Kind::from_i32(input.kind) {
+    let kind = if let Ok(i) = Kind::try_from(input.kind) {
         i
     } else {
         return Err(error::Format::DeserializationError(
@@ -710,7 +712,7 @@ fn proto_op_to_token_op(op: &schema::Op) -> Result<Op, error::Format> {
     Ok(match op.content.as_ref() {
         Some(op::Content::Value(id)) => Op::Value(proto_id_to_token_term(id)?),
         Some(op::Content::Unary(u)) => {
-            match (op_unary::Kind::from_i32(u.kind), u.ffi_name.as_ref()) {
+            match (op_unary::Kind::try_from(u.kind).ok(), u.ffi_name.as_ref()) {
                 (Some(op_unary::Kind::Negate), None) => Op::Unary(Unary::Negate),
                 (Some(op_unary::Kind::Parens), None) => Op::Unary(Unary::Parens),
                 (Some(op_unary::Kind::Length), None) => Op::Unary(Unary::Length),
@@ -735,7 +737,7 @@ fn proto_op_to_token_op(op: &schema::Op) -> Result<Op, error::Format> {
             }
         }
         Some(op::Content::Binary(b)) => {
-            match (op_binary::Kind::from_i32(b.kind), b.ffi_name.as_ref()) {
+            match (op_binary::Kind::try_from(b.kind).ok(), b.ffi_name.as_ref()) {
                 (Some(op_binary::Kind::LessThan), None) => Op::Binary(Binary::LessThan),
                 (Some(op_binary::Kind::GreaterThan), None) => Op::Binary(Binary::GreaterThan),
                 (Some(op_binary::Kind::LessOrEqual), None) => Op::Binary(Binary::LessOrEqual),

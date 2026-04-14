@@ -67,10 +67,11 @@ impl From<base64::DecodeError> for Token {
             base64::DecodeError::InvalidByte(offset, byte) => {
                 Base64Error::InvalidByte(offset, byte)
             }
-            base64::DecodeError::InvalidLength => Base64Error::InvalidLength,
+            base64::DecodeError::InvalidLength(_) => Base64Error::InvalidLength,
             base64::DecodeError::InvalidLastSymbol(offset, byte) => {
                 Base64Error::InvalidLastSymbol(offset, byte)
             }
+            base64::DecodeError::InvalidPadding => Base64Error::InvalidLength,
         };
 
         Token::Base64(err)
