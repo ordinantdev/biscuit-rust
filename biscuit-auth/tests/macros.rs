@@ -293,6 +293,7 @@ fn json() {
     );
 }
 
+#[cfg(feature = "p256")]
 #[test]
 fn ecdsa() {
     use biscuit_auth::PublicKey;

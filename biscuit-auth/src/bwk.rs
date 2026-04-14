@@ -78,17 +78,20 @@ mod tests {
         let parsed: BiscuitWebKey = serde_json::from_str(&serialized).unwrap();
         assert_eq!(parsed, bwk);
 
-        let keypair = KeyPair::new_with_algorithm(Algorithm::Secp256r1);
-        let bwk = BiscuitWebKey {
-            public_key: keypair.public(),
-            key_id: 0,
-            expires_at: None,
-            issuer: Some("test".to_string()),
-        };
+        #[cfg(feature = "p256")]
+        {
+            let keypair = KeyPair::new_with_algorithm(Algorithm::Secp256r1);
+            let bwk = BiscuitWebKey {
+                public_key: keypair.public(),
+                key_id: 0,
+                expires_at: None,
+                issuer: Some("test".to_string()),
+            };
 
-        let serialized = serde_json::to_string(&bwk).unwrap();
-        let parsed: BiscuitWebKey = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(parsed, bwk);
+            let serialized = serde_json::to_string(&bwk).unwrap();
+            let parsed: BiscuitWebKey = serde_json::from_str(&serialized).unwrap();
+            assert_eq!(parsed, bwk);
+        }
 
         let keypair = KeyPair::new();
         let bwk = BiscuitWebKey {

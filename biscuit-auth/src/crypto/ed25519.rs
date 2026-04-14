@@ -107,7 +107,7 @@ impl KeyPair {
     #[cfg(feature = "pem")]
     pub fn to_private_key_pem(&self) -> Result<zeroize::Zeroizing<String>, error::Format> {
         use ed25519_dalek::pkcs8::EncodePrivateKey;
-        use p256::pkcs8::LineEnding;
+        use ::pkcs8::LineEnding;
         let kp = self
             .kp
             .to_pkcs8_pem(LineEnding::LF)
@@ -177,7 +177,7 @@ impl PrivateKey {
     #[cfg(feature = "pem")]
     pub fn to_pem(&self) -> Result<zeroize::Zeroizing<String>, error::Format> {
         use ed25519_dalek::pkcs8::EncodePrivateKey;
-        use p256::pkcs8::LineEnding;
+        use ::pkcs8::LineEnding;
         let kp = ed25519_dalek::SigningKey::from_bytes(&self.0)
             .to_pkcs8_pem(LineEnding::LF)
             .map_err(|e| error::Format::PKCS8(e.to_string()))?;
@@ -312,7 +312,7 @@ impl PublicKey {
     #[cfg(feature = "pem")]
     pub fn to_pem(&self) -> Result<String, error::Format> {
         use ed25519_dalek::pkcs8::EncodePublicKey;
-        use p256::pkcs8::LineEnding;
+        use ::pkcs8::LineEnding;
         let kp = self
             .0
             .to_public_key_pem(LineEnding::LF)

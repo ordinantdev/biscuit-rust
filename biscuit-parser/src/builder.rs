@@ -166,6 +166,7 @@ impl ToTokens for Scope {
                     Algorithm::Ed25519 => quote! { ::biscuit_auth::builder::Scope::PublicKey(
                         ::biscuit_auth::PublicKey::from_bytes(&[#(#bytes),*], ::biscuit_auth::builder::Algorithm::Ed25519).unwrap()
                       )},
+                    #[cfg(feature = "p256")]
                     Algorithm::Secp256r1 => quote! { ::biscuit_auth::builder::Scope::PublicKey(
                         ::biscuit_auth::PublicKey::from_bytes(&[#(#bytes),*], ::biscuit_auth::builder::Algorithm::Secp256r1).unwrap()
                       )},
@@ -411,6 +412,7 @@ pub struct PublicKey {
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Algorithm {
     Ed25519,
+    #[cfg(feature = "p256")]
     Secp256r1,
 }
 

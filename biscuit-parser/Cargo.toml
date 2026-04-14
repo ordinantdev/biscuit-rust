@@ -20,7 +20,9 @@ thiserror = "1.0.32"
 time = {version = "0.3.7", features = ["formatting", "parsing"]}
 
 [features]
+default = ["p256"]
 datalog-macro = []
 pem = []
+p256 = []
 # used by biscuit-wasm to serialize errors to JSON
 serde-error = ["serde"]

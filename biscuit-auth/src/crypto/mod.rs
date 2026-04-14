@@ -17,6 +17,7 @@ use crate::format::ThirdPartyVerificationMode;
 
 use super::error;
 mod ed25519;
+#[cfg(feature = "p256")]
 mod p256;
 
 use nom::Finish;
@@ -29,6 +30,7 @@ use std::str::FromStr;
 #[derive(Debug, PartialEq)]
 pub enum KeyPair {
     Ed25519(ed25519::KeyPair),
+    #[cfg(feature = "p256")]
     P256(p256::KeyPair),
 }
 
@@ -46,6 +48,7 @@ impl KeyPair {
     pub fn new_with_rng<T: RngCore + CryptoRng>(algorithm: Algorithm, rng: &mut T) -> Self {
         match algorithm {
             Algorithm::Ed25519 => KeyPair::Ed25519(ed25519::KeyPair::new_with_rng(rng)),
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => KeyPair::P256(p256::KeyPair::new_with_rng(rng)),
         }
     }
@@ -53,6 +56,7 @@ impl KeyPair {
     pub fn from(key: &PrivateKey) -> Self {
         match key {
             PrivateKey::Ed25519(key) => KeyPair::Ed25519(ed25519::KeyPair::from(key)),
+            #[cfg(feature = "p256")]
             PrivateKey::P256(key) => KeyPair::P256(p256::KeyPair::from(key)),
         }
     }
@@ -66,15 +70,21 @@ impl KeyPair {
             schema::public_key::Algorithm::Ed25519 => {
                 Ok(KeyPair::Ed25519(ed25519::KeyPair::from_bytes(bytes)?))
             }
+            #[cfg(feature = "p256")]
             schema::public_key::Algorithm::Secp256r1 => {
                 Ok(KeyPair::P256(p256::KeyPair::from_bytes(bytes)?))
             }
+            #[cfg(not(feature = "p256"))]
+            _ => Err(error::Format::InvalidKey(
+                "P256 support not enabled".to_string(),
+            )),
         }
     }
 
     pub fn sign(&self, data: &[u8]) -> Result<Signature, error::Format> {
         match self {
             KeyPair::Ed25519(key) => key.sign(data),
+            #[cfg(feature = "p256")]
             KeyPair::P256(key) => key.sign(data),
         }
     }
@@ -88,6 +98,7 @@ impl KeyPair {
             Algorithm::Ed25519 => Ok(KeyPair::Ed25519(ed25519::KeyPair::from_private_key_der(
                 bytes,
             )?)),
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => Ok(KeyPair::P256(p256::KeyPair::from_private_key_der(bytes)?)),
         }
     }
@@ -106,6 +117,7 @@ impl KeyPair {
             Algorithm::Ed25519 => Ok(KeyPair::Ed25519(ed25519::KeyPair::from_private_key_pem(
                 str,
             )?)),
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => Ok(KeyPair::P256(p256::KeyPair::from_private_key_pem(str)?)),
         }
     }
@@ -119,6 +131,7 @@ impl KeyPair {
     pub fn to_private_key_der(&self) -> Result<zeroize::Zeroizing<Vec<u8>>, error::Format> {
         match self {
             KeyPair::Ed25519(key) => key.to_private_key_der(),
+            #[cfg(feature = "p256")]
             KeyPair::P256(key) => key.to_private_key_der(),
         }
     }
@@ -127,6 +140,7 @@ impl KeyPair {
     pub fn to_private_key_pem(&self) -> Result<zeroize::Zeroizing<String>, error::Format> {
         match self {
             KeyPair::Ed25519(key) => key.to_private_key_pem(),
+            #[cfg(feature = "p256")]
             KeyPair::P256(key) => key.to_private_key_pem(),
         }
     }
@@ -134,6 +148,7 @@ impl KeyPair {
     pub fn private(&self) -> PrivateKey {
         match self {
             KeyPair::Ed25519(key) => PrivateKey::Ed25519(key.private()),
+            #[cfg(feature = "p256")]
             KeyPair::P256(key) => PrivateKey::P256(key.private()),
         }
     }
@@ -141,6 +156,7 @@ impl KeyPair {
     pub fn public(&self) -> PublicKey {
         match self {
             KeyPair::Ed25519(key) => PublicKey::Ed25519(key.public()),
+            #[cfg(feature = "p256")]
             KeyPair::P256(key) => PublicKey::P256(key.public()),
         }
     }
@@ -148,6 +164,7 @@ impl KeyPair {
     pub fn algorithm(&self) -> crate::format::schema::public_key::Algorithm {
         match self {
             KeyPair::Ed25519(_) => crate::format::schema::public_key::Algorithm::Ed25519,
+            #[cfg(feature = "p256")]
             KeyPair::P256(_) => crate::format::schema::public_key::Algorithm::Secp256r1,
         }
     }
@@ -163,6 +180,7 @@ impl std::default::Default for KeyPair {
 #[derive(Debug, Clone, PartialEq)]
 pub enum PrivateKey {
     Ed25519(ed25519::PrivateKey),
+    #[cfg(feature = "p256")]
     P256(p256::PrivateKey),
 }
 
@@ -171,6 +189,7 @@ impl FromStr for PrivateKey {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.split_once('/') {
             Some(("ed25519-private", bytes)) => Self::from_bytes_hex(bytes, Algorithm::Ed25519),
+            #[cfg(feature = "p256")]
             Some(("secp256r1-private", bytes)) => Self::from_bytes_hex(bytes, Algorithm::Secp256r1),
             Some((alg, _)) => Err(error::Format::InvalidKey(format!(
                 "Unsupported key algorithm {alg}"
@@ -187,6 +206,7 @@ impl PrivateKey {
     pub fn to_bytes(&self) -> zeroize::Zeroizing<Vec<u8>> {
         match self {
             PrivateKey::Ed25519(key) => zeroize::Zeroizing::new(key.to_bytes()),
+            #[cfg(feature = "p256")]
             PrivateKey::P256(key) => key.to_bytes(),
         }
     }
@@ -200,7 +220,10 @@ impl PrivateKey {
     pub fn to_prefixed_string(&self) -> String {
         let algorithm = match self.algorithm() {
             schema::public_key::Algorithm::Ed25519 => "ed25519-private",
+            #[cfg(feature = "p256")]
             schema::public_key::Algorithm::Secp256r1 => "secp256r1-private",
+            #[cfg(not(feature = "p256"))]
+            _ => unreachable!(),
         };
         format!("{algorithm}/{}", self.to_bytes_hex())
     }
@@ -209,6 +232,7 @@ impl PrivateKey {
     pub fn from_bytes(bytes: &[u8], algorithm: Algorithm) -> Result<Self, error::Format> {
         match algorithm {
             Algorithm::Ed25519 => Ok(PrivateKey::Ed25519(ed25519::PrivateKey::from_bytes(bytes)?)),
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => Ok(PrivateKey::P256(p256::PrivateKey::from_bytes(bytes)?)),
         }
     }
@@ -226,6 +250,7 @@ impl PrivateKey {
     ) -> Result<Self, error::Format> {
         match algorithm {
             Algorithm::Ed25519 => Ok(PrivateKey::Ed25519(ed25519::PrivateKey::from_der(bytes)?)),
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => Ok(PrivateKey::P256(p256::PrivateKey::from_der(bytes)?)),
         }
     }
@@ -239,6 +264,7 @@ impl PrivateKey {
     pub fn from_pem_with_algorithm(str: &str, algorithm: Algorithm) -> Result<Self, error::Format> {
         match algorithm {
             Algorithm::Ed25519 => Ok(PrivateKey::Ed25519(ed25519::PrivateKey::from_pem(str)?)),
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => Ok(PrivateKey::P256(p256::PrivateKey::from_pem(str)?)),
         }
     }
@@ -252,6 +278,7 @@ impl PrivateKey {
     pub fn to_der(&self) -> Result<zeroize::Zeroizing<Vec<u8>>, error::Format> {
         match self {
             PrivateKey::Ed25519(key) => key.to_der(),
+            #[cfg(feature = "p256")]
             PrivateKey::P256(key) => key.to_der(),
         }
     }
@@ -260,6 +287,7 @@ impl PrivateKey {
     pub fn to_pem(&self) -> Result<zeroize::Zeroizing<String>, error::Format> {
         match self {
             PrivateKey::Ed25519(key) => key.to_pem(),
+            #[cfg(feature = "p256")]
             PrivateKey::P256(key) => key.to_pem(),
         }
     }
@@ -268,6 +296,7 @@ impl PrivateKey {
     pub fn public(&self) -> PublicKey {
         match self {
             PrivateKey::Ed25519(key) => PublicKey::Ed25519(key.public()),
+            #[cfg(feature = "p256")]
             PrivateKey::P256(key) => PublicKey::P256(key.public()),
         }
     }
@@ -275,6 +304,7 @@ impl PrivateKey {
     pub fn algorithm(&self) -> crate::format::schema::public_key::Algorithm {
         match self {
             PrivateKey::Ed25519(_) => crate::format::schema::public_key::Algorithm::Ed25519,
+            #[cfg(feature = "p256")]
             PrivateKey::P256(_) => crate::format::schema::public_key::Algorithm::Secp256r1,
         }
     }
@@ -284,6 +314,7 @@ impl PrivateKey {
 #[derive(Debug, Clone, Copy, PartialEq, Hash, Eq)]
 pub enum PublicKey {
     Ed25519(ed25519::PublicKey),
+    #[cfg(feature = "p256")]
     P256(p256::PublicKey),
 }
 
@@ -292,6 +323,7 @@ impl PublicKey {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             PublicKey::Ed25519(key) => key.to_bytes().into(),
+            #[cfg(feature = "p256")]
             PublicKey::P256(key) => key.to_bytes(),
         }
     }
@@ -305,6 +337,7 @@ impl PublicKey {
     pub fn from_bytes(bytes: &[u8], algorithm: Algorithm) -> Result<Self, error::Format> {
         match algorithm {
             Algorithm::Ed25519 => Ok(PublicKey::Ed25519(ed25519::PublicKey::from_bytes(bytes)?)),
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => Ok(PublicKey::P256(p256::PublicKey::from_bytes(bytes)?)),
         }
     }
@@ -320,8 +353,13 @@ impl PublicKey {
             Ok(PublicKey::Ed25519(ed25519::PublicKey::from_bytes(
                 &key.key,
             )?))
-        } else if key.algorithm == schema::public_key::Algorithm::Secp256r1 as i32 {
-            Ok(PublicKey::P256(p256::PublicKey::from_bytes(&key.key)?))
+        } else if cfg!(feature = "p256")
+            && key.algorithm == schema::public_key::Algorithm::Secp256r1 as i32
+        {
+            #[cfg(feature = "p256")]
+            return Ok(PublicKey::P256(p256::PublicKey::from_bytes(&key.key)?));
+            #[cfg(not(feature = "p256"))]
+            unreachable!()
         } else {
             Err(error::Format::DeserializationError(format!(
                 "deserialization error: unexpected key algorithm {}",
@@ -344,6 +382,7 @@ impl PublicKey {
     ) -> Result<Self, error::Format> {
         match algorithm {
             Algorithm::Ed25519 => Ok(PublicKey::Ed25519(ed25519::PublicKey::from_der(bytes)?)),
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => Ok(PublicKey::P256(p256::PublicKey::from_der(bytes)?)),
         }
     }
@@ -357,6 +396,7 @@ impl PublicKey {
     pub fn from_pem_with_algorithm(str: &str, algorithm: Algorithm) -> Result<Self, error::Format> {
         match algorithm {
             Algorithm::Ed25519 => Ok(PublicKey::Ed25519(ed25519::PublicKey::from_pem(str)?)),
+            #[cfg(feature = "p256")]
             Algorithm::Secp256r1 => Ok(PublicKey::P256(p256::PublicKey::from_pem(str)?)),
         }
     }
@@ -370,6 +410,7 @@ impl PublicKey {
     pub fn to_der(&self) -> Result<Vec<u8>, error::Format> {
         match self {
             PublicKey::Ed25519(key) => key.to_der(),
+            #[cfg(feature = "p256")]
             PublicKey::P256(key) => key.to_der(),
         }
     }
@@ -378,6 +419,7 @@ impl PublicKey {
     pub fn to_pem(&self) -> Result<String, error::Format> {
         match self {
             PublicKey::Ed25519(key) => key.to_pem(),
+            #[cfg(feature = "p256")]
             PublicKey::P256(key) => key.to_pem(),
         }
     }
@@ -389,6 +431,7 @@ impl PublicKey {
     ) -> Result<(), error::Format> {
         match self {
             PublicKey::Ed25519(key) => key.verify_signature(data, signature),
+            #[cfg(feature = "p256")]
             PublicKey::P256(key) => key.verify_signature(data, signature),
         }
     }
@@ -396,6 +439,7 @@ impl PublicKey {
     pub fn algorithm(&self) -> crate::format::schema::public_key::Algorithm {
         match self {
             PublicKey::Ed25519(_) => crate::format::schema::public_key::Algorithm::Ed25519,
+            #[cfg(feature = "p256")]
             PublicKey::P256(_) => crate::format::schema::public_key::Algorithm::Secp256r1,
         }
     }
@@ -403,6 +447,7 @@ impl PublicKey {
     pub fn algorithm_string(&self) -> &str {
         match self {
             PublicKey::Ed25519(_) => "ed25519",
+            #[cfg(feature = "p256")]
             PublicKey::P256(_) => "secp256r1",
         }
     }
@@ -410,6 +455,7 @@ impl PublicKey {
     pub(crate) fn write(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PublicKey::Ed25519(key) => key.write(f),
+            #[cfg(feature = "p256")]
             PublicKey::P256(key) => key.write(f),
         }
     }
@@ -417,6 +463,7 @@ impl PublicKey {
     pub fn print(&self) -> String {
         match self {
             PublicKey::Ed25519(key) => key.print(),
+            #[cfg(feature = "p256")]
             PublicKey::P256(key) => key.print(),
         }
     }
@@ -456,6 +503,7 @@ impl FromStr for PublicKey {
             &public_key.key,
             match public_key.algorithm {
                 biscuit_parser::builder::Algorithm::Ed25519 => Algorithm::Ed25519,
+                #[cfg(feature = "p256")]
                 biscuit_parser::builder::Algorithm::Secp256r1 => Algorithm::Secp256r1,
             },
         )
@@ -787,20 +835,23 @@ mod tests {
                 .unwrap()
                 .to_bytes()
         );
-        let p256_root = KeyPair::new_with_algorithm(Algorithm::Secp256r1);
-        assert_eq!(
-            p256_root.public(),
-            p256_root.public().to_string().parse().unwrap()
-        );
-        assert_eq!(
-            p256_root.private().to_bytes(),
-            p256_root
-                .private()
-                .to_prefixed_string()
-                .parse::<PrivateKey>()
-                .unwrap()
-                .to_bytes()
-        )
+        #[cfg(feature = "p256")]
+        {
+            let p256_root = KeyPair::new_with_algorithm(Algorithm::Secp256r1);
+            assert_eq!(
+                p256_root.public(),
+                p256_root.public().to_string().parse().unwrap()
+            );
+            assert_eq!(
+                p256_root.private().to_bytes(),
+                p256_root
+                    .private()
+                    .to_prefixed_string()
+                    .parse::<PrivateKey>()
+                    .unwrap()
+                    .to_bytes()
+            );
+        }
     }
 
     #[test]
@@ -829,6 +880,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "p256")]
     #[test]
     fn parsing_secp256r1() {
         let private_p256 = PrivateKey::from_bytes_hex(
@@ -934,7 +986,7 @@ mod tests {
         assert_eq!(ed25519_pub, deser_pub);
     }
 
-    #[cfg(feature = "pem")]
+    #[cfg(all(feature = "pem", feature = "p256"))]
     #[test]
     fn p256_der() {
         let p256_kp = KeyPair::new_with_algorithm(Algorithm::Secp256r1);
@@ -961,7 +1013,7 @@ mod tests {
         assert_eq!(p256_pub, deser_pub);
     }
 
-    #[cfg(feature = "pem")]
+    #[cfg(all(feature = "pem", feature = "p256"))]
     #[test]
     fn p256_pem() {
         let p256_kp = KeyPair::new_with_algorithm(Algorithm::Secp256r1);

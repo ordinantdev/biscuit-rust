@@ -322,6 +322,7 @@ mod tests {
     use crate::{datalog::RunLimits, Algorithm, AuthorizerBuilder};
     use crate::{Authorizer, BiscuitBuilder, KeyPair};
 
+    #[cfg(feature = "p256")]
     #[test]
     fn roundtrip_builder() {
         let secp_pubkey = KeyPair::new_with_algorithm(Algorithm::Secp256r1).public();
@@ -354,6 +355,7 @@ mod tests {
         assert_eq!(parsed.limits, builder.limits);
     }
 
+    #[cfg(feature = "p256")]
     #[test]
     fn roundtrip_with_token() {
         let secp_pubkey = KeyPair::new_with_algorithm(Algorithm::Secp256r1).public();
