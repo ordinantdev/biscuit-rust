@@ -322,9 +322,37 @@ mod tests {
     use crate::{datalog::RunLimits, Algorithm, AuthorizerBuilder};
     use crate::{Authorizer, BiscuitBuilder, KeyPair};
 
-    #[cfg(feature = "p256")]
     #[test]
     fn roundtrip_builder() {
+        let ed_pubkey = KeyPair::new_with_algorithm(Algorithm::Ed25519).public();
+        let builder = AuthorizerBuilder::new()
+            .set_limits(RunLimits {
+                max_facts: 42,
+                max_iterations: 42,
+                max_time: Duration::from_secs(1),
+            })
+            .code_with_params(
+                r#"
+                fact(true);
+                head($a) <- fact($a);
+                check if head(true) trusting authority, {ed_pubkey};
+                allow if head(true);
+                deny if head(false);
+        "#,
+                HashMap::default(),
+                HashMap::from([("ed_pubkey".to_string(), ed_pubkey)]),
+            )
+            .unwrap();
+        let snapshot = builder.snapshot().unwrap();
+
+        let parsed = AuthorizerBuilder::from_snapshot(snapshot).unwrap();
+        assert_eq!(parsed.dump_code(), builder.dump_code());
+        assert_eq!(parsed.limits, builder.limits);
+    }
+
+    #[cfg(feature = "p256")]
+    #[test]
+    fn roundtrip_builder_with_p256() {
         let secp_pubkey = KeyPair::new_with_algorithm(Algorithm::Secp256r1).public();
         let ed_pubkey = KeyPair::new_with_algorithm(Algorithm::Ed25519).public();
         let builder = AuthorizerBuilder::new()

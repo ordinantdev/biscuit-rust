@@ -353,13 +353,15 @@ impl PublicKey {
             Ok(PublicKey::Ed25519(ed25519::PublicKey::from_bytes(
                 &key.key,
             )?))
-        } else if cfg!(feature = "p256")
-            && key.algorithm == schema::public_key::Algorithm::Secp256r1 as i32
-        {
+        } else if key.algorithm == schema::public_key::Algorithm::Secp256r1 as i32 {
             #[cfg(feature = "p256")]
             return Ok(PublicKey::P256(p256::PublicKey::from_bytes(&key.key)?));
             #[cfg(not(feature = "p256"))]
-            unreachable!()
+            return Err(error::Format::DeserializationError(format!(
+                "deserialization error: P256/Secp256r1 support not enabled (algorithm {}, key {} bytes)",
+                key.algorithm,
+                key.key.len()
+            )));
         } else {
             Err(error::Format::DeserializationError(format!(
                 "deserialization error: unexpected key algorithm {}",
